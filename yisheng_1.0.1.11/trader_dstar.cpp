@@ -146,9 +146,14 @@ void TraderDstar::OnRspTrdExchangeState(const DstarApiTrdExchangeStateField *pTr
 
 void TraderDstar::OnRtnOrder(const DstarApiOrderField *pOrder) 
 {
+    if (pOrder->Reference == -1) {
+        wflog_msg("OnRtnOrder pOrder->Reference:%lld", pOrder->Reference);
+        return;
+    }
+    ref2orderId[pOrder->Reference] = pOrder->OrderId;
     auto it = ref2id.find(pOrder->Reference);
     if (it == ref2id.end()) {
-        wflog_msg("OnRtnOrder pOrder->Reference:%lld not found", pOrder->Reference);
+        wflog_msg("OnRtnOrder pOrder->Reference:%lld not found, Direct:%c,Offset:%c,price:%lf,volume:%u,OrderId:%llu", pOrder->Reference,pOrder->Direct,pOrder->Offset,pOrder->OrderPrice,pOrder->OrderQty,pOrder->OrderId);
         return;
     }
 
@@ -335,6 +340,10 @@ void TraderDstar::OnRspUdpAuth(const DstarApiRspUdpAuthField *pRspUdpAuth)
 
 void TraderDstar::OnRspOrderInsert(const DstarApiRspOrderInsertField *pOrderInsert)
 {
+    if (pOrderInsert->Reference == -1) {
+        wflog_msg("OnRspOrderInsert Reference:%lld,OrderId:%llu", pOrderInsert->Reference,pOrderInsert->OrderId);
+        return;
+    }
     if (pOrderInsert->ErrCode) {
         long orderid = ref2id[pOrderInsert->Reference];
         trader_on_send_err(&trader, currtime(), orderid, pOrderInsert->ErrCode);
@@ -355,6 +364,10 @@ void TraderDstar::OnRspLastReqId(const DstaApiRspLastReqIdField *pLastReqId)
 
 void TraderDstar::OnRspOrderDelete(const DstarApiRspOrderDeleteField *pOrderDelete)
 {
+    if (pOrderDelete->Reference == -1) {
+        wflog_msg("OnRspOrderDelete Reference:%lld,OrderId:%llu", pOrderDelete->Reference,pOrderDelete->OrderId);
+        return;
+    }
     if (pOrderDelete->ErrCode) {
         long orderid = ref2id[pOrderDelete->Reference];
         trader_on_cancel_err(&trader, currtime(), orderid, pOrderDelete->ErrCode);
